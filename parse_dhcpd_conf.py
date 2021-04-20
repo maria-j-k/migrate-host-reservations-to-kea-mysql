@@ -6,11 +6,12 @@ import csv
 # ===========================================================================
 def extract_reservation_params(t):
 # ===========================================================================
-    hostname, items = t
+    hostname, items, comments = t
+    comments = comments[1:] if comments else ''
     mac           = re.search(r'hardware ethernet\s+(.+?);', items).groups()[0]
     ipv4_address  = re.search(r'fixed-address\s+(.+?);', items).groups()[0]
     other_options = re.findall(r'.+?option (\S+)\s+(\S+);', items, re.DOTALL)
-    return hostname, mac, ipv4_address, other_options
+    return hostname, mac, ipv4_address, other_options, comments
 
 # ===========================================================================
 def main():
@@ -26,14 +27,14 @@ def main():
   with open(sys.argv[1]) as f:
     raw = f.read()
 
-  hosts = re.findall(r'.+?\n\s+host\s+(\S+)\s*{(.+?)}', raw, re.DOTALL)
+  hosts = re.findall(r'^\s+host\s+(\S+)\s*{(.+?)}\s?(#.+)?', raw, re.MULTILINE)
 
   f = open(sys.argv[2], mode='w')
   writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
   for h in hosts:
     p = extract_reservation_params(h)
-    params = p[:3] + sum(p[3], ())    # flatten tuple of strings and tuples to a tuple of strings 
+    params = p[:3] + sum(p[3], ()) + p[4:]   # flatten tuple of strings and tuples to a tuple of strings 
     writer.writerow(params)
     print(params)
 
